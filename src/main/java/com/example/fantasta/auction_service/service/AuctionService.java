@@ -100,8 +100,23 @@ public class AuctionService {
         return response;
     }
     
-    public AuctionResponse getAuctionById(int auctionId) throws NotFoundException
+    public AuctionResponse getAuctionById(String authorizationHeader, int auctionId) throws NotFoundException, TokenException
     {
+        AuthUserResponse res;
+        try
+        {
+             res = authServiceClient.getAuthenticatedUser(authorizationHeader); // Validate token
+        }
+        catch(TokenException e)
+        {
+            throw new TokenException("Invalid or expired token");
+        }
+
+        if(res == null)
+        {
+            throw new TokenException("Invalid or expired token");
+        }
+
         Auction auction = auctionRepository.findById(auctionId);
         
         if(auction == null) 

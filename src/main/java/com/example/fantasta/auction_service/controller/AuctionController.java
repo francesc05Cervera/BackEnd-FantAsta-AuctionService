@@ -31,16 +31,23 @@ public class AuctionController {
     }
     
     @GetMapping("/{auctionId}")
-    public ResponseEntity<AuctionResponse> getAuctionById(@PathVariable int auctionId)
+    public ResponseEntity<AuctionResponse> getAuctionById(
+        @RequestHeader("Authorization") String authorizationHeader,
+        @PathVariable int auctionId)
     {
+
         try
         {
-            AuctionResponse respone = auctionService.getAuctionById(auctionId);
+            AuctionResponse respone = auctionService.getAuctionById(authorizationHeader, auctionId);
             return ResponseEntity.ok(respone);
         }
         catch(NotFoundException e)
         {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+        catch(TokenException e)
+        {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
     }
