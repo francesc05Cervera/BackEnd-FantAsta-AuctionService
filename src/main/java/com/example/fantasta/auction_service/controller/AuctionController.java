@@ -3,6 +3,7 @@ package com.example.fantasta.auction_service.controller;
 import com.example.fantasta.auction_service.dto.AuctionResponse;
 import com.example.fantasta.auction_service.dto.AuthUserResponse;
 import com.example.fantasta.auction_service.dto.CreateAuctionRequest;
+import com.example.fantasta.auction_service.enumeration.AuctionStatus;
 import com.example.fantasta.auction_service.exception.CreationException;
 import com.example.fantasta.auction_service.exception.TokenException;
 import com.example.fantasta.auction_service.exception.NotFoundException;
@@ -69,6 +70,11 @@ public class AuctionController {
         {
             AuctionResponse res = auctionService.getAuctionById(authorizationHeader, auctionId);
             AuthUserResponse user = authServiceClient.getAuthenticatedUser(authorizationHeader);
+            
+            if(res.getStatus() != AuctionStatus.OPEN)
+            {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Auction is not open for joining.");
+            }
             
             if(auctionParticipantService.join(auctionId, user.getId()))
             {
