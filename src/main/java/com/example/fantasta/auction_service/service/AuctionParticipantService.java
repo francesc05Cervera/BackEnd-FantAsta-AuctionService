@@ -1,6 +1,11 @@
 package com.example.fantasta.auction_service.service;
 import com.example.fantasta.auction_service.repository.AuctionParticipantRepository;
 import com.example.fantasta.auction_service.entity.AuctionParticipant;
+import jakarta.transaction.Transactional;
+
+import java.time.LocalDateTime;
+
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -31,5 +36,13 @@ public class AuctionParticipantService
         participant.setJoinedAt(java.time.LocalDateTime.now());
         auctionParticipantRepository.save(participant);
         return true;
+    }
+
+    @Scheduled(cron = "0 0 3 * * ?")
+    @Transactional
+    public void cleanupOldParticipants() 
+    {
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(5);
+        auctionParticipantRepository.deleteByJoinedAtBefore(cutoff);
     }
 }
