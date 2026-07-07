@@ -8,4 +8,5 @@ import java.util.List;
 public interface FantasyTeamRepository extends JpaRepository<FantasyTeam, Integer> {
 
     List<FantasyTeam> findByAuctionId(int auctionId);
+     
 }

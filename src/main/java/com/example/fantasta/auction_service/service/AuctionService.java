@@ -177,5 +177,34 @@ public class AuctionService {
 
         return auction.getCreatorUserId().equals(uID);
     }
+
+    public AuctionResponse updateStatus(String authorizationHeader, int auctionId, AuctionStatus newStatus) throws NotFoundException, TokenException {
+        AuthUserResponse res;
+        try
+        {
+             res = authServiceClient.getAuthenticatedUser(authorizationHeader); // Validate token
+        }
+        catch(TokenException e)
+        {
+            throw new TokenException("Invalid or expired token");
+        }
+
+        if(res == null)
+        {
+            throw new TokenException("Invalid or expired token");
+        }
+
+        Optional<Auction> auctionOptional = auctionRepository.findById(auctionId);
+
+        if (!auctionOptional.isPresent()) {
+            throw new NotFoundException("Auction with ID " + auctionId + " not found");
+        }
+
+        Auction auction = auctionOptional.get();
+        auction.setStatus(newStatus);
+        auctionRepository.save(auction);
+
+        return mapToResponse(auction);
+    }
     
 }
