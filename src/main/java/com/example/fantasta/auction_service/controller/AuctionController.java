@@ -8,9 +8,12 @@ package com.example.fantasta.auction_service.controller;
 import com.example.fantasta.auction_service.dto.AuctionResponse;
 import com.example.fantasta.auction_service.dto.AuthUserResponse;
 import com.example.fantasta.auction_service.dto.CreateAuctionRequest;
+import com.example.fantasta.auction_service.dto.UpdateAuctionRequest;
 import com.example.fantasta.auction_service.entity.Auction;
 import com.example.fantasta.auction_service.enumeration.AuctionStatus;
 import com.example.fantasta.auction_service.exception.CreationException;
+import com.example.fantasta.auction_service.exception.ForbiddenException;
+import com.example.fantasta.auction_service.exception.InvalidStateException;
 import com.example.fantasta.auction_service.exception.TokenException;
 import com.example.fantasta.auction_service.exception.NotFoundException;
 import com.example.fantasta.auction_service.service.AuctionService;
@@ -105,6 +108,57 @@ public class AuctionController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
 
+    }
+
+    @PutMapping("/{auctionId}")
+    public ResponseEntity<?> updateAuction(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable int auctionId,
+            @RequestBody UpdateAuctionRequest request) {
+
+        try {
+            AuctionResponse response = auctionService.updateAuction(
+                    authorizationHeader,
+                    auctionId,
+                    request.getName(),
+                    request.getMaxPlayersPerTeam(),
+                    request.getMaxGoalkeepers(),
+                    request.getMaxDefenders(),
+                    request.getMaxMidfielders(),
+                    request.getMaxForwards(),
+                    request.getInitialCredits()
+            );
+            return ResponseEntity.ok(response);
+        } catch (TokenException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        } catch (NotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (ForbiddenException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (InvalidStateException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{auctionId}")
+    public ResponseEntity<?> deleteAuction(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable int auctionId) {
+
+        try {
+            auctionService.deleteAuction(authorizationHeader, auctionId);
+            return ResponseEntity.ok("Auction deleted successfully");
+        } catch (TokenException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        } catch (NotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (ForbiddenException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
     }
 
 }

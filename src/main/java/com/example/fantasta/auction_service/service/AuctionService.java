@@ -8,6 +8,8 @@ import com.example.fantasta.auction_service.entity.Auction;
 import com.example.fantasta.auction_service.repository.AuctionRepository;
 import com.example.fantasta.auction_service.enumeration.AuctionStatus;
 import com.example.fantasta.auction_service.exception.CreationException;
+import com.example.fantasta.auction_service.exception.ForbiddenException;
+import com.example.fantasta.auction_service.exception.InvalidStateException;
 import com.example.fantasta.auction_service.exception.TokenException;
 import com.example.fantasta.auction_service.exception.NotFoundException;
 
@@ -206,5 +208,89 @@ public class AuctionService {
 
         return mapToResponse(auction);
     }
-    
+
+    public AuctionResponse updateAuction(
+        String authorizationHeader,
+        int auctionId,
+        String name,
+        Integer maxPlayersPerTeam,
+        Integer maxGoalkeepers,
+        Integer maxDefenders,
+        Integer maxMidfielders,
+        Integer maxForwards,
+        Integer initialCredits
+) throws TokenException, NotFoundException, ForbiddenException, InvalidStateException {
+    // 1. validare token
+    AuthUserResponse res = authServiceClient.getAuthenticatedUser(authorizationHeader);
+    if (res == null) {
+        throw new TokenException("Invalid or expired token");
+    }
+
+    // 2. trovare asta
+    Auction auction = auctionRepository.findById(auctionId)
+            .orElseThrow(() -> new NotFoundException("Auction with ID " + auctionId + " not found"));
+
+    // 3. verificare che l’utente sia creatore
+    if (auction.getCreatorUserId() != res.getId()) {
+        throw new ForbiddenException("Only the creator can update this auction");
+    }
+
+    // 4. (opzionale) verificare stato: se ASTA FINITA o PARTITA, non permettere certe modifiche
+    //    a seconda delle tue regole
+    if (auction.getStatus() == AuctionStatus.CLOSED) {
+        throw new InvalidStateException("Cannot update an auction that is already closed");
+    }
+
+    // 5. aggiornare campi (solo se non null)
+    if (name != null) {
+        auction.setName(name);
+    }
+    if (maxPlayersPerTeam != null) {
+        auction.setMaxPlayersPerTeam(maxPlayersPerTeam);
+    }
+    if (maxGoalkeepers != null) {
+        auction.setMaxGoalkeepers(maxGoalkeepers);
+    }
+    if (maxDefenders != null) {
+        auction.setMaxDefenders(maxDefenders);
+    }
+    if (maxMidfielders != null) {
+        auction.setMaxMidfielders(maxMidfielders);
+    }
+    if (maxForwards != null) {
+        auction.setMaxForwards(maxForwards);
+    }
+    if (initialCredits != null) {
+        auction.setInitialCredits(initialCredits);
+    }
+
+    auctionRepository.save(auction);
+
+    return mapToResponse(auction);
+}
+
+    public void deleteAuction(
+            String authorizationHeader,
+            int auctionId
+    ) throws TokenException, NotFoundException, ForbiddenException {
+
+        // 1. validare token
+        AuthUserResponse res = authServiceClient.getAuthenticatedUser(authorizationHeader);
+        if (res == null) {
+            throw new TokenException("Invalid or expired token");
+        }
+
+        // 2. trovare asta
+        Auction auction = auctionRepository.findById(auctionId)
+                .orElseThrow(() -> new NotFoundException("Auction with ID " + auctionId + " not found"));
+
+        // 3. verificare che l’utente sia creatore
+        if (auction.getCreatorUserId() != res.getId()) {
+            throw new ForbiddenException("Only the creator can delete this auction");
+        }
+
+        // 5. cancellare (in cascata, se configurato in JPA)
+        auctionRepository.delete(auction);
+    }
+        
 }
