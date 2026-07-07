@@ -13,6 +13,7 @@ import com.example.fantasta.auction_service.exception.NotFoundException;
 
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -117,23 +118,25 @@ public class AuctionService {
             throw new TokenException("Invalid or expired token");
         }
 
-        Auction auction = auctionRepository.findById(auctionId);
-        
-        if(auction == null) 
-        {
+        Optional<Auction> auctionOptional = auctionRepository.findById(auctionId);
+
+        if (!auctionOptional.isPresent()) {
             throw new NotFoundException("Auction with ID " + auctionId + " not found");
         }
+
+        Auction auction = auctionOptional.get();
         return mapToResponse(auction);
     }
 
     public boolean isOwner(int auctionId, Long uID) throws NotFoundException
     {
-        Auction auction = auctionRepository.findById(auctionId);
-        
-        if(auction == null) 
-        {
+        Optional<Auction> auctionOptional = auctionRepository.findById(auctionId);
+
+        if (!auctionOptional.isPresent()) {
             throw new NotFoundException("Auction with ID " + auctionId + " not found");
         }
+
+        Auction auction = auctionOptional.get();
 
         return auction.getCreatorUserId().equals(uID);
     }

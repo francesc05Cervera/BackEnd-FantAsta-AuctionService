@@ -1,6 +1,15 @@
 package com.example.fantasta.auction_service.service;
 import com.example.fantasta.auction_service.repository.AuctionParticipantRepository;
+import com.example.fantasta.auction_service.dto.AuthUserResponse;
+import com.example.fantasta.auction_service.entity.Auction;
 import com.example.fantasta.auction_service.entity.AuctionParticipant;
+import com.example.fantasta.auction_service.exception.TokenException;
+import com.example.fantasta.auction_service.exception.NotFoundException;
+import com.example.fantasta.auction_service.exception.ForbiddenException;
+import com.example.fantasta.auction_service.repository.AuctionRepository;
+import com.example.fantasta.auction_service.client.AuthServiceClient;
+
+
 import jakarta.transaction.Transactional;
 
 import java.time.LocalDateTime;
@@ -12,11 +21,15 @@ import org.springframework.stereotype.Service;
 public class AuctionParticipantService 
 {
     private final AuctionParticipantRepository auctionParticipantRepository;
-
-    public AuctionParticipantService(AuctionParticipantRepository auctionParticipantRepository) 
+    private final AuctionRepository auctionRepository; 
+    private final AuthServiceClient authServiceClient;
+    public AuctionParticipantService(AuctionParticipantRepository auctionParticipantRepository, AuctionRepository auctionRepository, AuthServiceClient authServiceClient) 
     {
         this.auctionParticipantRepository = auctionParticipantRepository;
+        this.auctionRepository = auctionRepository;
+        this.authServiceClient = authServiceClient;
     }
+   
     
     private boolean isUserAlreadyJoined(int auctionId, Long userId) 
     {
@@ -50,4 +63,28 @@ public class AuctionParticipantService
     {
         return auctionParticipantRepository.findByAuctionId(auctionId);
     }
+
+    public void approveParticipant(String authorizationHeader, int auctionId, Long participantUserId)
+        throws TokenException, NotFoundException, ForbiddenException {
+
+    AuthUserResponse user = authServiceClient.getAuthenticatedUser(authorizationHeader);
+
+    if (user == null) {
+        throw new TokenException("Invalid or expired token");
+    }
+
+    Auction auction = auctionRepository.findById(auctionId)
+            .orElseThrow(() -> new NotFoundException("Auction with ID " + auctionId + " not found"));
+
+    if (!auction.getCreatorUserId().equals(user.getId())) {
+        throw new ForbiddenException("Only the auction owner can approve participants.");
+    }
+
+    AuctionParticipant participant = auctionParticipantRepository
+            .findByAuctionIdAndUserId(auctionId, participantUserId)
+            .orElseThrow(() -> new NotFoundException("Participant not found for this auction"));
+
+    participant.setApproved(true);
+    auctionParticipantRepository.save(participant);
+}
 }

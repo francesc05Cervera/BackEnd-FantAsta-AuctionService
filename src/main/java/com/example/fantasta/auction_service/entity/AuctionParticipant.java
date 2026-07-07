@@ -21,6 +21,9 @@ public class AuctionParticipant {
     @Column(nullable = false)
     private LocalDateTime joinedAt;
 
+    @Column(nullable = false)
+    private boolean approved = false;
+
     public AuctionParticipant() {
     }
 
@@ -29,6 +32,7 @@ public class AuctionParticipant {
         this.auctionId = auctionId;
         this.userId = userId;
         this.joinedAt = joinedAt;
+        this.approved = false;
     }
 
     public int getId() {
@@ -43,6 +47,13 @@ public class AuctionParticipant {
         return auctionId;
     }
 
+    public void setApproved(boolean approved) {
+        this.approved = approved;
+    }
+
+    public boolean isApproved() {
+        return approved;
+    }
     public void setAuctionId(int auctionId) {
         this.auctionId = auctionId;
     }
