@@ -7,7 +7,6 @@ import com.example.fantasta.auction_service.repository.AuctionRepository;
 import com.example.fantasta.auction_service.repository.AuctionParticipantRepository;
 import com.example.fantasta.auction_service.repository.FantasyTeamRepository;
 import com.example.fantasta.auction_service.dto.AuthUserResponse;
-import com.example.fantasta.auction_service.dto.AuctionResponse;
 import com.example.fantasta.auction_service.exception.TokenException;
 import com.example.fantasta.auction_service.exception.NotFoundException;
 import com.example.fantasta.auction_service.exception.ForbiddenException;
