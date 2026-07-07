@@ -125,5 +125,17 @@ public class AuctionService {
         }
         return mapToResponse(auction);
     }
+
+    public boolean isOwner(int auctionId, Long uID) throws NotFoundException
+    {
+        Auction auction = auctionRepository.findById(auctionId);
+        
+        if(auction == null) 
+        {
+            throw new NotFoundException("Auction with ID " + auctionId + " not found");
+        }
+
+        return auction.getCreatorUserId().equals(uID);
+    }
     
 }

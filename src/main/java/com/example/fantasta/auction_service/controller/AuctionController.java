@@ -75,7 +75,7 @@ public class AuctionController {
             {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Auction is not open for joining.");
             }
-            
+
             if(auctionParticipantService.join(auctionId, user.getId()))
             {
                 return ResponseEntity.ok("User joined the auction successfully.");
@@ -84,6 +84,36 @@ public class AuctionController {
             {
                 return ResponseEntity.status(HttpStatus.CONFLICT).body("User has already joined the auction.");
             }
+        }
+        catch(Exception e)
+        {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/{auctionId}/participants")
+    public ResponseEntity<?> getParticipants(
+        @RequestHeader("Authorization") String authorizationHeader,
+        @PathVariable int auctionId) 
+    {
+        try
+        {
+            AuthUserResponse user = authServiceClient.getAuthenticatedUser(authorizationHeader);
+            AuctionResponse auction = auctionService.getAuctionById(authorizationHeader, auctionId);
+
+            if (!auctionService.isOwner(auctionId, user.getId())) 
+            {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Only the auction owner can view participants.");
+            }
+            return ResponseEntity.ok(auctionParticipantService.getParticipant(auctionId));
+        }
+        catch(NotFoundException e)
+        {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+        catch(TokenException e)
+        {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
         }
         catch(Exception e)
         {

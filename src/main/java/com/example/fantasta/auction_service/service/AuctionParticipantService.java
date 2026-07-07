@@ -4,7 +4,7 @@ import com.example.fantasta.auction_service.entity.AuctionParticipant;
 import jakarta.transaction.Transactional;
 
 import java.time.LocalDateTime;
-
+import java.util.List;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -44,5 +44,10 @@ public class AuctionParticipantService
     {
         LocalDateTime cutoff = LocalDateTime.now().minusDays(5);
         auctionParticipantRepository.deleteByJoinedAtBefore(cutoff);
+    }
+
+    public List<AuctionParticipant> getParticipant(int auctionId) 
+    {
+        auctionParticipantRepository.findByAuctionId(auctionId);
     }
 }
