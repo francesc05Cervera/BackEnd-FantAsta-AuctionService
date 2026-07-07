@@ -30,12 +30,25 @@ public class AuctionParticipantService
         this.authServiceClient = authServiceClient;
     }
    
-    
+    /*
+        Metodo di supporto per verificare se un utente ha già partecipato a un'asta specifica.
+        @param auctionId: ID dell'asta da verificare.
+        @param userId: ID dell'utente da verificare.       
+        @return true se l'utente ha già partecipato all'asta, false altrimenti.
+        
+    */
     private boolean isUserAlreadyJoined(int auctionId, Long userId) 
     {
         return auctionParticipantRepository.existsByAuctionIdAndUserId(auctionId, userId);
     }
 
+    /*
+        Metodo richiamato dal controller per consentire a un utente di partecipare a un'asta.
+        @param auctionId: ID dell'asta a cui l'utente desidera partecipare.
+        @param userId: ID dell'utente che desidera partecipare all'asta.
+        @return true se l'utente è stato aggiunto con successo all'asta, false se l'utente ha già partecipato all'asta.
+        
+    */
     public boolean join(int auctionId, Long userId) 
     {
         if (isUserAlreadyJoined(auctionId, userId)) 
@@ -51,6 +64,9 @@ public class AuctionParticipantService
         return true;
     }
 
+    /*
+        Metodo programmato per la pulizia dei partecipanti alle aste.
+    */
     @Scheduled(cron = "0 0 3 * * ?")
     @Transactional
     public void cleanupOldParticipants() 
@@ -59,11 +75,25 @@ public class AuctionParticipantService
         auctionParticipantRepository.deleteByJoinedAtBefore(cutoff);
     }
 
+    /*
+        Metodo per ottenere i partecipanti a un'asta specifica.
+        @param auctionId: ID dell'asta per cui ottenere i partecipanti.
+        @return Lista dei partecipanti all'asta.
+    */
     public List<AuctionParticipant> getParticipant(int auctionId) 
     {
         return auctionParticipantRepository.findByAuctionId(auctionId);
     }
 
+    /*
+        Metodo per approvare un partecipante a un'asta.
+        @param authorizationHeader: Header di autorizzazione contenente il token dell'utente autenticato.
+        @param auctionId: ID dell'asta per cui approvare il partecipante.
+        @param participantUserId: ID dell'utente che desidera essere approvato.
+        @throws TokenException: Se il token di autorizzazione non è valido o scaduto.
+        @throws NotFoundException: Se l'asta o il partecipante non sono stati trovati.
+        @throws ForbiddenException: Se l'utente autenticato non è il proprietario dell'asta.
+    */
     public void approveParticipant(String authorizationHeader, int auctionId, Long participantUserId)
         throws TokenException, NotFoundException, ForbiddenException {
 

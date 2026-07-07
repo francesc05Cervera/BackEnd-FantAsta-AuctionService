@@ -27,6 +27,14 @@ public class AuctionService {
         this.authServiceClient = authServiceClient;
     }
 
+    /*
+        Metodo per creare una nuova asta.
+        @param authorizationHeader: Header di autorizzazione contenente il token dell'utente autenticato.
+        @param request: Dati per la creazione dell'asta.
+        @return Risposta contenente i dettagli dell'asta creata.
+        @throws TokenException: Se il token di autorizzazione non è valido o scaduto.
+        @throws CreationException: Se si verifica un errore durante la creazione dell'asta.
+    */
     public AuctionResponse createAuction(String authorizationHeader, CreateAuctionRequest request) throws TokenException, CreationException {
         
     	AuthUserResponse user = authServiceClient.getAuthenticatedUser(authorizationHeader);
@@ -50,6 +58,11 @@ public class AuctionService {
         return mapToResponse(savedAuction);
     }
 
+    /*
+        Metodo di supporto per la  validazione per la richiesta di creazione di un'asta.
+        @param request: La richiesta di creazione dell'asta.
+        @throws CreationException: Se la richiesta non è valida.
+    */
     private void validateCreateAuctionRequest(CreateAuctionRequest request) throws CreationException
     {
         if (request.getName() == null || request.getName().trim().isEmpty()) {
@@ -81,10 +94,19 @@ public class AuctionService {
         }
     }
 
+    /*
+        Metodo di supporto per la generazione del codice univoco per un'asta.
+        @return Il codice univoco generato.
+    */
     private String generateAuctionCode() {
         return UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
     
+    /*
+        Metodo di supporto per la mappatura di un'asta a una risposta.
+        @param auction: L'asta da mappare.
+        @return La risposta contenente i dettagli dell'asta.
+    */
     private AuctionResponse mapToResponse(Auction auction) {
         AuctionResponse response = new AuctionResponse();
         response.setId(auction.getId());
@@ -101,6 +123,14 @@ public class AuctionService {
         return response;
     }
     
+    /*
+        Metodo per ottenere i dettagli di un'asta specifica.
+        @param authorizationHeader: Header di autorizzazione contenente il token dell'utente autenticato.
+        @param auctionId: ID dell'asta per cui ottenere i dettagli.
+        @return Risposta contenente i dettagli dell'asta.
+        @throws NotFoundException: Se l'asta non è stata trovata.
+        @throws TokenException: Se il token di autorizzazione non è valido o scaduto.
+    */
     public AuctionResponse getAuctionById(String authorizationHeader, int auctionId) throws NotFoundException, TokenException
     {
         AuthUserResponse res;
@@ -128,6 +158,13 @@ public class AuctionService {
         return mapToResponse(auction);
     }
 
+    /*
+        Metodo  per verificare se un utente è il proprietario di un'asta.
+        @param auctionId: ID dell'asta da verificare.
+        @param uID: ID dell'utente da verificare.
+        @return true se l'utente è il proprietario dell'asta, false altrimenti.
+        @throws NotFoundException: Se l'asta non è stata trovata.
+    */
     public boolean isOwner(int auctionId, Long uID) throws NotFoundException
     {
         Optional<Auction> auctionOptional = auctionRepository.findById(auctionId);

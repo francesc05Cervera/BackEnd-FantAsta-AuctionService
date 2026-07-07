@@ -1,3 +1,8 @@
+/*
+    Scritto da Cervera Francesco
+    (C) Diritti Riservati
+*/
+
 package com.example.fantasta.auction_service.controller;
 
 import com.example.fantasta.auction_service.dto.AuctionResponse;
@@ -27,6 +32,14 @@ public class AuctionController {
         this.authServiceClient = authServiceClient;
     }
 
+    /*
+        Metodo che consete la creazione di un'asta. 
+        @param authorizationHeader: Header di autorizzazione contenente il token dell'utente autenticato.
+        @param request: Oggetto contenente i dati necessari per creare l'asta.
+        @return ResponseEntity contenente la risposta dell'asta creata.
+        @throws TokenException: Se il token di autorizzazione non è valido o scaduto. 
+        @throws CreationException: Se si verifica un errore durante la creazione dell'asta.
+    */
     @PostMapping("/create")
     public ResponseEntity<AuctionResponse> createAuction(
             @RequestHeader("Authorization") String authorizationHeader,
@@ -37,6 +50,15 @@ public class AuctionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
     
+    /*
+        Metodo che consente di ottenere un'asta per ID.
+        @param authorizationHeader: Header di autorizzazione contenente il token dell'utente autenticato.
+        @param auctionId: ID dell'asta da recuperare.
+        @return ResponseEntity contenente la risposta dell'asta recuperata.
+        @throws NotFoundException: Se l'asta non è stata trovata.
+        @throws TokenException: Se il token di autorizzazione non è valido o scaduto.
+
+    */
     @GetMapping("/{auctionId}")
     public ResponseEntity<AuctionResponse> getAuctionById(
         @RequestHeader("Authorization") String authorizationHeader,
@@ -59,6 +81,15 @@ public class AuctionController {
 
     }
 
+    /*
+        Metodo che consente a un utente di unirsi a un'asta.
+        @param authorizationHeader: Header di autorizzazione contenente il token dell'utente autenticato.
+        @param auctionId: ID dell'asta a cui l'utente desidera unirsi.
+        @return ResponseEntity contenente il risultato dell'operazione di join.
+        @throws TokenException: Se il token di autorizzazione non è valido o scaduto.
+        @throws NotFoundException: Se l'asta non è stata trovata.
+
+    */
     @PostMapping("/{auctionId}/join")
     public ResponseEntity<?> join(
         @RequestHeader("Authorization") String authorizationHeader,
@@ -90,6 +121,15 @@ public class AuctionController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
+
+    /*
+        Metodo che consente di ottenere i partecipanti a un'asta.
+        @param authorizationHeader: Header di autorizzazione contenente il token dell'utente autenticato.
+        @param auctionId: ID dell'asta per cui recuperare i partecipanti.
+        @return ResponseEntity contenente la lista dei partecipanti.
+        @throws NotFoundException: Se l'asta non è stata trovata.
+        @throws TokenException: Se il token di autorizzazione non è valido o scaduto.
+    */
 
     @GetMapping("/{auctionId}/participants")
     public ResponseEntity<?> getParticipants(
