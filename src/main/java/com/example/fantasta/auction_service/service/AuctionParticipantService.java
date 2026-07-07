@@ -48,6 +48,6 @@ public class AuctionParticipantService
 
     public List<AuctionParticipant> getParticipant(int auctionId) 
     {
-        auctionParticipantRepository.findByAuctionId(auctionId);
+        return auctionParticipantRepository.findByAuctionId(auctionId);
     }
 }

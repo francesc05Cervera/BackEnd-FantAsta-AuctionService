@@ -99,7 +99,6 @@ public class AuctionController {
         try
         {
             AuthUserResponse user = authServiceClient.getAuthenticatedUser(authorizationHeader);
-            AuctionResponse auction = auctionService.getAuctionById(authorizationHeader, auctionId);
 
             if (!auctionService.isOwner(auctionId, user.getId())) 
             {
