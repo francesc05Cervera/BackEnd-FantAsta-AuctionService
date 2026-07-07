@@ -42,7 +42,7 @@ Il servizio fa parte di un'architettura a **microservizi**. La comunicazione con
 
 ## 📁 Struttura del Progetto
 
-'''
+```
 src/main/java/com/example/fantasta/auction_service/
 ├── client/ # Client HTTP per comunicazione con Auth Service
 ├── config/ # Configurazioni Spring (CORS, beans, ecc.)
@@ -54,7 +54,7 @@ src/main/java/com/example/fantasta/auction_service/
 ├── repository/ # Repository JPA
 ├── security/ # Configurazione Spring Security
 └── service/ # Business logic
-'''
+```
 
 ---
 
