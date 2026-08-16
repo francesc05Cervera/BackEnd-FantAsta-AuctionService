@@ -1,6 +1,7 @@
 package com.example.fantasta.auction_service.controller;
 
 import com.example.fantasta.auction_service.dto.AssignPlayerRequest;
+import com.example.fantasta.auction_service.dto.PlayerDTO;
 import com.example.fantasta.auction_service.dto.UpdateAssignmentRequest;
 import com.example.fantasta.auction_service.entity.PlayerAssignment;
 import com.example.fantasta.auction_service.service.PlayerAssignmentService;
@@ -108,4 +109,17 @@ public class PlayerAssignmentController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
+
+    @GetMapping("/available/{auctionId}")
+public ResponseEntity<List<PlayerDTO>> getAvailablePlayers(
+        @RequestHeader("Authorization") String authorizationHeader,
+        @PathVariable Integer auctionId
+) {
+    return ResponseEntity.ok(
+            playerAssignmentService.getAvailablePlayers(
+                    authorizationHeader,
+                    auctionId
+            )
+    );
+}
 }

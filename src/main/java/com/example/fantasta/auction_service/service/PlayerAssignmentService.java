@@ -1,7 +1,6 @@
 package com.example.fantasta.auction_service.service;
 
-import com.example.fantasta.auction_service.dto.AssignPlayerRequest;
-import com.example.fantasta.auction_service.dto.UpdateAssignmentRequest;
+
 import com.example.fantasta.auction_service.entity.PlayerAssignment;
 import com.example.fantasta.auction_service.repository.PlayerAssignmentRepository;
 import com.example.fantasta.auction_service.exception.TokenException;
@@ -17,7 +16,6 @@ import com.example.fantasta.auction_service.client.AuthServiceClient;
 import com.example.fantasta.auction_service.dto.AuthUserResponse;
 
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.util.List;
 
