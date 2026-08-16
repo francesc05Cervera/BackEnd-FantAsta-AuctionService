@@ -17,6 +17,7 @@ import com.example.fantasta.auction_service.client.AuthServiceClient;
 import com.example.fantasta.auction_service.dto.AuthUserResponse;
 
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.util.List;
 
@@ -201,9 +202,9 @@ public class PlayerAssignmentService {
     }
 
     // PlayerAssignmentService.java
-public List<PlayerDTO> getAvailablePlayers(Integer auctionId) {
+public List<PlayerDTO> getAvailablePlayers(String authorizationHeader, Integer auctionId) {
     // 1. Chiami PlayerService per tutti i giocatori
-    List<PlayerDTO> allPlayers = playerClient.getAllPlayers(authorizationHeader);
+    List<PlayerDTO> allPlayers = playerClient.getPlayers(authorizationHeader);
     
     // 2. Recupera i giocatori già assegnati in questa asta
     List<Integer> assignedIds = playerAssignmentRepository
