@@ -10,6 +10,7 @@ import com.example.fantasta.auction_service.exception.ForbiddenException;
 import com.example.fantasta.auction_service.exception.BudgetExceededException;
 import com.example.fantasta.auction_service.exception.LimitExceededException;
 import com.example.fantasta.auction_service.exception.DuplicateAssignmentException;
+import com.example.fantasta.auction_service.client.PlayerServiceClient;
 
 import com.example.fantasta.auction_service.client.AuthServiceClient;
 import com.example.fantasta.auction_service.dto.AuthUserResponse;
@@ -25,6 +26,7 @@ public class PlayerAssignmentService {
     private final AuthServiceClient authServiceClient;
     private final AuctionService auctionService;
     private final FantasyTeamService fantasyTeamService;
+    private final PlayerServiceClient playerClient;
 
     public PlayerAssignmentService(PlayerAssignmentRepository playerAssignmentRepository,
                                    AuthServiceClient authServiceClient,
@@ -194,4 +196,19 @@ public class PlayerAssignmentService {
 
         return playerAssignmentRepository.save(assignment);
     }
+
+    // PlayerAssignmentService.java
+public List<PlayerDTO> getAvailablePlayers(Integer auctionId) {
+    // 1. Chiami PlayerService per tutti i giocatori
+    List<PlayerDTO> allPlayers = playerClient.getAllPlayers(authorizationHeader);
+    
+    // 2. Recupera i giocatori già assegnati in questa asta
+    List<Integer> assignedIds = playerAssignmentRepository
+        .findPlayerIdsByAuctionId(auctionId);
+    
+    // 3. Differenza
+    return allPlayers.stream()
+        .filter(p -> !assignedIds.contains(p.getId()))
+        .toList();
+}
 }
