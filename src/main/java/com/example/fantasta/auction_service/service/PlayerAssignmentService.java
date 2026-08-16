@@ -11,6 +11,7 @@ import com.example.fantasta.auction_service.exception.BudgetExceededException;
 import com.example.fantasta.auction_service.exception.LimitExceededException;
 import com.example.fantasta.auction_service.exception.DuplicateAssignmentException;
 import com.example.fantasta.auction_service.client.PlayerServiceClient;
+import com.example.fantasta.auction_service.dto.PlayerDTO;
 
 import com.example.fantasta.auction_service.client.AuthServiceClient;
 import com.example.fantasta.auction_service.dto.AuthUserResponse;
@@ -31,11 +32,13 @@ public class PlayerAssignmentService {
     public PlayerAssignmentService(PlayerAssignmentRepository playerAssignmentRepository,
                                    AuthServiceClient authServiceClient,
                                    AuctionService auctionService,
-                                   FantasyTeamService fantasyTeamService) {
+                                   FantasyTeamService fantasyTeamService,
+                                   PlayerServiceClient playerClient) {
         this.playerAssignmentRepository = playerAssignmentRepository;
         this.authServiceClient = authServiceClient;
         this.auctionService = auctionService;
         this.fantasyTeamService = fantasyTeamService;
+        this.playerClient = playerClient;
     }
 
     private AuthUserResponse validateToken(String authorizationHeader) throws TokenException {

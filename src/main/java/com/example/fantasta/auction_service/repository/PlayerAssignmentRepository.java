@@ -12,4 +12,6 @@ public interface PlayerAssignmentRepository extends JpaRepository<PlayerAssignme
     List<PlayerAssignment> findByAuctionId(Integer auctionId);
 
     List<PlayerAssignment> findByAuctionIdAndTeamId(Integer auctionId, Integer teamId);
+
+    List<Integer> findPlayerIdsByAuctionId(Integer auctionId);
 }
