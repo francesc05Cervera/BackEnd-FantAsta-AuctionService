@@ -122,7 +122,7 @@ public ResponseEntity<String> pingAuctions() {
         @throws TokenException: Se il token di autorizzazione non è valido o scaduto.
 
     */
-    @GetMapping("/{auctionId}")
+    @GetMapping("/{auctionId:\\d+}")
     public ResponseEntity<AuctionResponse> getAuctionById(
         @RequestHeader("Authorization") String authorizationHeader,
         @PathVariable int auctionId)
