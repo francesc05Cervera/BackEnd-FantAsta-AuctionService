@@ -56,6 +56,28 @@ public class AuctionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
     
+    @GetMapping("/mine")
+    public ResponseEntity<?> getMyAuctions(
+            @RequestHeader("Authorization") String authorizationHeader) {
+
+        try {
+            AuthUserResponse user =
+                    authServiceClient.getAuthenticatedUser(authorizationHeader);
+
+            return ResponseEntity.ok(
+                    auctionService.getAuctionsForUser(user.getId())
+            );
+
+        } catch (TokenException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(e.getMessage());
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(e.getMessage());
+        }
+    }
+    
     /*
         Metodo che consente di ottenere un'asta per ID.
         @param authorizationHeader: Header di autorizzazione contenente il token dell'utente autenticato.
@@ -161,25 +183,5 @@ public class AuctionController {
         }
     }
 
-    @GetMapping("/mine")
-    public ResponseEntity<?> getMyAuctions(
-            @RequestHeader("Authorization") String authorizationHeader) {
-
-        try {
-            AuthUserResponse user =
-                    authServiceClient.getAuthenticatedUser(authorizationHeader);
-
-            return ResponseEntity.ok(
-                    auctionService.getAuctionsForUser(user.getId())
-            );
-
-        } catch (TokenException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(e.getMessage());
-
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(e.getMessage());
-        }
-    }
+    
 }
