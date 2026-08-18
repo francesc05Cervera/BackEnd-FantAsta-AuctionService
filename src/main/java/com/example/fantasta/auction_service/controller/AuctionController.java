@@ -119,6 +119,31 @@ public ResponseEntity<String> pingAuctions() {
 
     }
 
+    @GetMapping("/code/{auctionCode}")
+public ResponseEntity<?> getAuctionByCode(
+        @RequestHeader("Authorization") String authorizationHeader,
+        @PathVariable String auctionCode) {
+
+    try {
+        AuctionResponse response =
+                auctionService.getAuctionByCode(authorizationHeader, auctionCode);
+
+        return ResponseEntity.ok(response);
+
+    } catch (NotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(e.getMessage());
+
+    } catch (TokenException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(e.getMessage());
+
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(e.getMessage());
+    }
+}
+
     @PatchMapping("/{auctionId}/status")
     public ResponseEntity<?> updateAuctionStatus(
             @RequestHeader("Authorization") String authorizationHeader,

@@ -316,6 +316,21 @@ public class AuctionService {
             .toList();
 }
 
+public AuctionResponse getAuctionByCode(
+        String authorizationHeader,
+        String auctionCode) throws TokenException, NotFoundException {
+
+    authServiceClient.getAuthenticatedUser(authorizationHeader);
+
+    Auction auction = auctionRepository.findByAuctionCode(auctionCode);
+
+    if (auction == null) {
+        throw new NotFoundException("Auction not found");
+    }
+
+    return toResponse(auction);
+}
+
 private AuctionResponse toResponse(Auction auction) {
     AuctionResponse response = new AuctionResponse();
     response.setId(auction.getId());
