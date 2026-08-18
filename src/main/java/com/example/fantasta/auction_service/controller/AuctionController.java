@@ -78,6 +78,10 @@ public class AuctionController {
         }
     }
     
+    @GetMapping("/ping")
+public ResponseEntity<String> pingAuctions() {
+    return ResponseEntity.ok("auctions-ping");
+}
     /*
         Metodo che consente di ottenere un'asta per ID.
         @param authorizationHeader: Header di autorizzazione contenente il token dell'utente autenticato.
