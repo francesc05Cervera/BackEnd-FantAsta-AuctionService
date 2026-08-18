@@ -2,7 +2,9 @@ package com.example.fantasta.auction_service.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -13,6 +15,7 @@ import com.example.fantasta.auction_service.client.AuthServiceClient;
 import com.example.fantasta.auction_service.dto.AuctionResponse;
 import com.example.fantasta.auction_service.dto.AuthUserResponse;
 import com.example.fantasta.auction_service.enumeration.AuctionStatus;
+import com.example.fantasta.auction_service.exception.ForbiddenException;
 import com.example.fantasta.auction_service.exception.NotFoundException;
 import com.example.fantasta.auction_service.exception.TokenException;
 import com.example.fantasta.auction_service.service.AuctionParticipantService;
@@ -110,6 +113,72 @@ public class AuctionParticipantController
         catch(Exception e)
         {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @PatchMapping("/{auctionId}/{userId}/approve")
+    public ResponseEntity<?> approveParticipant(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable int auctionId,
+            @PathVariable Long userId) {
+
+        try {
+            auctionParticipantService.approveParticipant(
+                    authorizationHeader,
+                    auctionId,
+                    userId
+            );
+
+            return ResponseEntity.ok("Participant approved successfully.");
+
+        } catch (TokenException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(e.getMessage());
+
+        } catch (ForbiddenException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(e.getMessage());
+
+        } catch (NotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(e.getMessage());
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{auctionId}/{userId}")
+    public ResponseEntity<?> rejectParticipant(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable int auctionId,
+            @PathVariable Long userId) {
+
+        try {
+            auctionParticipantService.rejectParticipant(
+                    authorizationHeader,
+                    auctionId,
+                    userId
+            );
+
+            return ResponseEntity.ok("Participant request rejected successfully.");
+
+        } catch (TokenException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(e.getMessage());
+
+        } catch (ForbiddenException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(e.getMessage());
+
+        } catch (NotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(e.getMessage());
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(e.getMessage());
         }
     }
 }

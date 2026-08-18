@@ -8,6 +8,7 @@ import com.example.fantasta.auction_service.exception.NotFoundException;
 import com.example.fantasta.auction_service.exception.ForbiddenException;
 import com.example.fantasta.auction_service.repository.AuctionRepository;
 import com.example.fantasta.auction_service.client.AuthServiceClient;
+import com.example.fantasta.auction_service.service.AuctionService;
 
 
 import jakarta.transaction.Transactional;
@@ -23,11 +24,14 @@ public class AuctionParticipantService
     private final AuctionParticipantRepository auctionParticipantRepository;
     private final AuctionRepository auctionRepository; 
     private final AuthServiceClient authServiceClient;
-    public AuctionParticipantService(AuctionParticipantRepository auctionParticipantRepository, AuctionRepository auctionRepository, AuthServiceClient authServiceClient) 
+    private final AuctionService auctionService;
+
+    public AuctionParticipantService(AuctionParticipantRepository auctionParticipantRepository, AuctionRepository auctionRepository, AuthServiceClient authServiceClient, AuctionService auctionService) 
     {
         this.auctionParticipantRepository = auctionParticipantRepository;
         this.auctionRepository = auctionRepository;
         this.authServiceClient = authServiceClient;
+        this.auctionService = auctionService;
     }
    
     /*
@@ -117,4 +121,30 @@ public class AuctionParticipantService
     participant.setApproved(true);
     auctionParticipantRepository.save(participant);
 }
+
+public void rejectParticipant(
+        String authorizationHeader,
+        int auctionId,
+        Long participantUserId)
+        throws TokenException, NotFoundException, ForbiddenException {
+
+    AuthUserResponse currentUser =
+            authServiceClient.getAuthenticatedUser(authorizationHeader);
+
+    if (!auctionService.isOwner(auctionId, currentUser.getId())) {
+        throw new ForbiddenException(
+                "Only the auction owner can reject participants."
+        );
+    }
+
+    AuctionParticipant participant =
+            auctionParticipantRepository
+                    .findByAuctionIdAndUserId(auctionId, participantUserId)
+                    .orElseThrow(() -> new NotFoundException(
+                            "Participant request not found."
+                    ));
+
+    auctionParticipantRepository.delete(participant);
+}
+
 }
