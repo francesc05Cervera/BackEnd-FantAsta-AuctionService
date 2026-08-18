@@ -315,4 +315,20 @@ public class AuctionService {
             .map(this::toResponse)
             .toList();
 }
+
+private AuctionResponse toResponse(Auction auction) {
+    AuctionResponse response = new AuctionResponse();
+    response.setId(auction.getId());
+    response.setAuctionCode(auction.getAuctionCode());
+    response.setName(auction.getName());
+    response.setMaxPlayersPerTeam(auction.getMaxPlayersPerTeam());
+    response.setMaxGoalkeepers(auction.getMaxGoalkeepers());
+    response.setMaxDefenders(auction.getMaxDefenders());
+    response.setMaxMidfielders(auction.getMaxMidfielders());
+    response.setMaxForwards(auction.getMaxForwards());
+    response.setInitialCredits(auction.getInitialCredits());
+    response.setCreatorUserId(auction.getCreatorUserId());
+    response.setStatus(auction.getStatus());
+    return response;
+}
 }
