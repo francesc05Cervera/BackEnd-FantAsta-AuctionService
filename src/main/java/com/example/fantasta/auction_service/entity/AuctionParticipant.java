@@ -24,6 +24,10 @@ public class AuctionParticipant {
     @Column(nullable = false)
     private boolean approved = false;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "auction_id", nullable = false, insertable = false, updatable = false)
+    private Auction auction;
+
     public AuctionParticipant() {
     }
 
@@ -33,6 +37,14 @@ public class AuctionParticipant {
         this.userId = userId;
         this.joinedAt = joinedAt;
         this.approved = false;
+    }
+
+    public Auction getAuction() {
+    return auction;
+}
+
+    public void setAuction(Auction auction) {
+    this.auction = auction;
     }
 
     public int getId() {

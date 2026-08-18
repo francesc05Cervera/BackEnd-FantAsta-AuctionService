@@ -6,6 +6,7 @@ import com.example.fantasta.auction_service.dto.AuthUserResponse;
 import com.example.fantasta.auction_service.dto.CreateAuctionRequest;
 import com.example.fantasta.auction_service.entity.Auction;
 import com.example.fantasta.auction_service.repository.AuctionRepository;
+import com.example.fantasta.auction_service.repository.AuctionParticipantRepository;
 import com.example.fantasta.auction_service.enumeration.AuctionStatus;
 import com.example.fantasta.auction_service.exception.CreationException;
 import com.example.fantasta.auction_service.exception.ForbiddenException;
@@ -15,18 +16,23 @@ import com.example.fantasta.auction_service.exception.NotFoundException;
 
 import org.springframework.stereotype.Service;
 
+import java.util.LinkedHashMap;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class AuctionService {
 
     private final AuctionRepository auctionRepository;
     private final AuthServiceClient authServiceClient;
+    private final AuctionParticipantRepository auctionParticipantRepository;
 
-    public AuctionService(AuctionRepository auctionRepository, AuthServiceClient authServiceClient) {
+    public AuctionService(AuctionRepository auctionRepository, AuthServiceClient authServiceClient, AuctionParticipantRepository auctionParticipantRepository) {
         this.auctionRepository = auctionRepository;
         this.authServiceClient = authServiceClient;
+        this.auctionParticipantRepository = auctionParticipantRepository;
     }
 
     /*
@@ -293,4 +299,20 @@ public class AuctionService {
         auctionRepository.delete(auction);
     }
         
+    public List<AuctionResponse> getAuctionsForUser(Long userId) {
+    Map<Integer, Auction> uniqueAuctions = new LinkedHashMap<>();
+
+    auctionRepository.findByCreatorUserId(userId)
+            .forEach(auction -> uniqueAuctions.put(auction.getId(), auction));
+
+    auctionParticipantRepository.findByUserId(userId)
+            .forEach(participant -> {
+                Auction auction = participant.getAuction();
+                uniqueAuctions.put(auction.getId(), auction);
+            });
+
+    return uniqueAuctions.values().stream()
+            .map(this::toResponse)
+            .toList();
+}
 }

@@ -19,4 +19,6 @@ public interface AuctionParticipantRepository extends JpaRepository<AuctionParti
     List<AuctionParticipant> findByAuctionId(int auctionId);
 
     Optional<AuctionParticipant> findByAuctionIdAndUserId(int auctionId, Long userId);
+
+    List<AuctionParticipant> findByUserId(Long userId);
 }

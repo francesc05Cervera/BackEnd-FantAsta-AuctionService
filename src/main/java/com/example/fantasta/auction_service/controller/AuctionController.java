@@ -161,4 +161,25 @@ public class AuctionController {
         }
     }
 
+    @GetMapping("/mine")
+public ResponseEntity<?> getMyAuctions(
+        @RequestHeader("Authorization") String authorizationHeader) {
+
+    try {
+        AuthUserResponse user =
+                authServiceClient.getAuthenticatedUser(authorizationHeader);
+
+        return ResponseEntity.ok(
+                auctionService.getAuctionsForUser(user.getId())
+        );
+
+    } catch (TokenException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(e.getMessage());
+
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(e.getMessage());
+    }
+}
 }
