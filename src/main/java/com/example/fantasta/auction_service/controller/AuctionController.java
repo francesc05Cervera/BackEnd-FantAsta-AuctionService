@@ -25,6 +25,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+
 @RestController
 @RequestMapping("/api/auctions")
 public class AuctionController {
@@ -56,28 +57,33 @@ public class AuctionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
     
-    @GetMapping("/mine")
-    public ResponseEntity<?> getMyAuctions(
-            @RequestHeader("Authorization") String authorizationHeader) {
+   @GetMapping("/mine")
+public ResponseEntity<?> getMyAuctions(
+        @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
 
-        try {
-            AuthUserResponse user =
-                    authServiceClient.getAuthenticatedUser(authorizationHeader);
-
-            return ResponseEntity.ok(
-                    auctionService.getAuctionsForUser(user.getId())
-            );
-
-        } catch (TokenException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(e.getMessage());
-
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(e.getMessage());
-        }
+    if (authorizationHeader == null || authorizationHeader.isBlank()) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body("Missing Authorization header");
     }
-    
+
+    try {
+        AuthUserResponse user =
+                authServiceClient.getAuthenticatedUser(authorizationHeader);
+
+        return ResponseEntity.ok(
+                auctionService.getAuctionsForUser(user.getId())
+        );
+
+    } catch (TokenException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(e.getMessage());
+
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(e.getMessage());
+    }
+}
+
     @GetMapping("/ping")
 public ResponseEntity<String> pingAuctions() {
     return ResponseEntity.ok("auctions-ping");
