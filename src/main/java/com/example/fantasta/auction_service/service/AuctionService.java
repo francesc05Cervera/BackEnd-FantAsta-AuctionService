@@ -317,10 +317,8 @@ public class AuctionService {
 }
 
 public AuctionResponse getAuctionByCode(
-        String authorizationHeader,
-        String auctionCode) throws TokenException, NotFoundException {
+        String auctionCode) throws NotFoundException {
 
-    authServiceClient.getAuthenticatedUser(authorizationHeader);
 
     Auction auction = auctionRepository.findByAuctionCode(auctionCode);
 

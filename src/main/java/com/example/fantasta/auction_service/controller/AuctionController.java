@@ -64,7 +64,7 @@ public ResponseEntity<?> getAuctionByCode(
 
     try {
         AuctionResponse response =
-                auctionService.getAuctionByCode(authorizationHeader, auctionCode);
+                auctionService.getAuctionByCode(auctionCode);
 
         return ResponseEntity.ok(response);
 
@@ -72,10 +72,7 @@ public ResponseEntity<?> getAuctionByCode(
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(e.getMessage());
 
-    } catch (TokenException e) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(e.getMessage());
-
+   
     } catch (Exception e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(e.getMessage());
