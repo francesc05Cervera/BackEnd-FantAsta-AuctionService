@@ -302,14 +302,20 @@ public class AuctionService {
     public List<AuctionResponse> getAuctionsForUser(Long userId) {
     Map<Integer, Auction> uniqueAuctions = new LinkedHashMap<>();
 
+    // Aste create dall'utente
     auctionRepository.findByCreatorUserId(userId)
-            .forEach(auction -> uniqueAuctions.put(auction.getId(), auction));
+            .forEach(auction ->
+                    uniqueAuctions.put(auction.getId(), auction)
+            );
 
+    // Aste a cui l'utente ha inviato una richiesta / partecipa
     auctionParticipantRepository.findByUserId(userId)
-            .forEach(participant -> {
-                Auction auction = participant.getAuction();
-                uniqueAuctions.put(auction.getId(), auction);
-            });
+            .forEach(participant ->
+                    auctionRepository.findById(participant.getAuctionId())
+                            .ifPresent(auction ->
+                                    uniqueAuctions.put(auction.getId(), auction)
+                            )
+            );
 
     return uniqueAuctions.values().stream()
             .map(this::toResponse)
