@@ -37,6 +37,8 @@ jobs:
       - run: mvn -B -ntp -Dmaven.wagon.http.retryHandler.count=5 dependency:go-offline
       - name: Scan third-party dependencies for known vulnerabilities
         uses: aquasecurity/trivy-action@master
+        env:
+          TRIVY_OFFLINE_SCAN: "true"
         with:
           scan-type: fs
           scanners: vuln

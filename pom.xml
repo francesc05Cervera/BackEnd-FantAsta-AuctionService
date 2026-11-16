@@ -21,9 +21,9 @@
         <java.version>17</java.version>
         <!-- Security fixes beyond the managed 3.5.x baseline; keep all Spring modules aligned. -->
         <spring-framework.version>6.2.19</spring-framework.version>
-        <spring-security.version>6.5.9</spring-security.version>
+        <spring-security.version>6.5.11</spring-security.version>
         <tomcat.version>10.1.59</tomcat.version>
-        <jackson.version>2.18.11</jackson.version>
+        <jackson-bom.version>2.21.7</jackson-bom.version>
         <postgresql.version>42.7.12</postgresql.version>
     </properties>
 
