@@ -11,6 +11,10 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      TEST_DB_URL: jdbc:postgresql://localhost:5432/fantasta_test
+      TEST_DB_USERNAME: fantasta
+      TEST_DB_PASSWORD: fantasta
     services:
       postgres:
         image: postgres:16
