@@ -7,6 +7,10 @@ import com.example.fantasta.auction_service.dto.CreateAuctionRequest;
 import com.example.fantasta.auction_service.entity.Auction;
 import com.example.fantasta.auction_service.repository.AuctionRepository;
 import com.example.fantasta.auction_service.repository.AuctionParticipantRepository;
+import com.example.fantasta.auction_service.repository.FantasyTeamRepository;
+import com.example.fantasta.auction_service.repository.PlayerAssignmentRepository;
+import com.example.fantasta.auction_service.entity.FantasyTeam;
+import com.example.fantasta.auction_service.entity.PlayerAssignment;
 import com.example.fantasta.auction_service.enumeration.AuctionStatus;
 import com.example.fantasta.auction_service.exception.CreationException;
 import com.example.fantasta.auction_service.exception.ForbiddenException;
@@ -29,11 +33,16 @@ public class AuctionService {
     private final AuctionRepository auctionRepository;
     private final AuthServiceClient authServiceClient;
     private final AuctionParticipantRepository auctionParticipantRepository;
+    private final FantasyTeamRepository fantasyTeamRepository;
+    private final PlayerAssignmentRepository playerAssignmentRepository;
 
-    public AuctionService(AuctionRepository auctionRepository, AuthServiceClient authServiceClient, AuctionParticipantRepository auctionParticipantRepository) {
+    public AuctionService(AuctionRepository auctionRepository, AuthServiceClient authServiceClient, AuctionParticipantRepository auctionParticipantRepository,
+            FantasyTeamRepository fantasyTeamRepository, PlayerAssignmentRepository playerAssignmentRepository) {
         this.auctionRepository = auctionRepository;
         this.authServiceClient = authServiceClient;
         this.auctionParticipantRepository = auctionParticipantRepository;
+        this.fantasyTeamRepository = fantasyTeamRepository;
+        this.playerAssignmentRepository = playerAssignmentRepository;
     }
 
     /*
@@ -222,7 +231,7 @@ public class AuctionService {
     }
 
     // 2. trovare asta
-    Auction auction = auctionRepository.findById(auctionId)
+    Auction auction = auctionRepository.findWithLockById(auctionId)
             .orElseThrow(() -> new NotFoundException("Auction with ID " + auctionId + " not found"));
 
     // 3. verificare che l’utente sia creatore
@@ -256,10 +265,14 @@ public class AuctionService {
         auction.setMaxForwards(maxForwards);
     }
     if (initialCredits != null) {
+        if (initialCredits != auction.getInitialCredits() && !fantasyTeamRepository.findByAuctionId(auctionId).isEmpty()) {
+            throw new InvalidStateException("Initial credits cannot change after teams have been created");
+        }
         auction.setInitialCredits(initialCredits);
     }
 
     validateLimits(auction);
+    validateExistingAssignments(auction);
     auctionRepository.save(auction);
 
     return mapToResponse(auction);
@@ -358,6 +371,29 @@ private AuctionResponse toResponse(Auction auction) {
                 || auction.getMaxDefenders() <= 0 || auction.getMaxMidfielders() <= 0 || auction.getMaxForwards() <= 0
                 || auction.getMaxGoalkeepers() + auction.getMaxDefenders() + auction.getMaxMidfielders() + auction.getMaxForwards() != auction.getMaxPlayersPerTeam()) {
             throw new InvalidStateException("Auction limits are invalid");
+        }
+    }
+
+    private void validateExistingAssignments(Auction auction) throws InvalidStateException {
+        for (FantasyTeam team : fantasyTeamRepository.findByAuctionId(auction.getId())) {
+            List<PlayerAssignment> assignments = playerAssignmentRepository.findByAuctionIdAndTeamId(auction.getId(), team.getId());
+            if (assignments.size() > auction.getMaxPlayersPerTeam()) {
+                throw new InvalidStateException("Existing roster exceeds the proposed total-player limit");
+            }
+            int spent = assignments.stream().mapToInt(PlayerAssignment::getCost).sum();
+            if (spent > auction.getInitialCredits()) {
+                throw new InvalidStateException("Existing roster spending exceeds the proposed initial credits");
+            }
+            validateRoleCount(assignments, "PORTIERE", auction.getMaxGoalkeepers());
+            validateRoleCount(assignments, "DIFENSORE", auction.getMaxDefenders());
+            validateRoleCount(assignments, "CENTROCAMPISTA", auction.getMaxMidfielders());
+            validateRoleCount(assignments, "ATTACCANTE", auction.getMaxForwards());
+        }
+    }
+
+    private void validateRoleCount(List<PlayerAssignment> assignments, String role, int limit) throws InvalidStateException {
+        if (assignments.stream().filter(item -> role.equalsIgnoreCase(item.getRole())).count() > limit) {
+            throw new InvalidStateException("Existing roster exceeds the proposed " + role + " limit");
         }
     }
 }
