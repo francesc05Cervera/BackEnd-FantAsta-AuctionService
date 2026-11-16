@@ -1,0 +1,4 @@
+# Spring Framework 6.2.20 officially fixes both; remove when Trivy's advisory
+# metadata recognizes the 6.2.x patched release.
+CVE-2026-47884
+CVE-2026-47890

@@ -68,4 +68,5 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           offline-scan: true
+          trivyignores: .trivyignore
           exit-code: '1'
