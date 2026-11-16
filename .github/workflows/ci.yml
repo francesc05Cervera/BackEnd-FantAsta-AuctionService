@@ -29,6 +29,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - run: mvn -B -ntp dependency:go-offline
       - name: Scan third-party dependencies for known vulnerabilities
         uses: aquasecurity/trivy-action@master
         with:
