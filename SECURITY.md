@@ -1,7 +1,5 @@
 # Security status
 
-AuctionService uses Spring Framework 6.2.20, the compatible patched release for `CVE-2026-47884` and `CVE-2026-47890`. Spring Framework's official 6.2.20 changelog lists both fixes.
-
-Some vulnerability feeds list only Spring Framework 7.0.9 as a patched version. The CI suppression is limited to these two CVEs and exists solely to account for that advisory-version mismatch; it does not disable Trivy or lower its severity threshold. It can be removed once the scanner database recognizes 6.2.20 as patched.
+AuctionService remains on Spring Framework 6.2.19, the Spring Boot 3.5.16 managed version. Maven Central does not publish the previously considered 6.2.20 release, while Trivy identifies Spring Framework 7.0.9 as the available fixed version. The two CVEs therefore remain visible to Trivy and keep the dependency-audit job failing until a compatible upstream patch is released or a separately validated Spring Boot 4 migration is approved.
 
 `CVE-2026-47884` requires `XsltView` combined with a broad `/**` view mapping and an implicit view name. This REST-only service has no `XsltView`, no server-side view rendering, and no broad catch-all controller mapping. `CVE-2026-47890` requires Server-Sent Events with view fragments; this service has no SSE endpoints or view fragments.

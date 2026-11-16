@@ -36,9 +36,10 @@ jobs:
       - name: Warm Maven dependencies with retry
         shell: bash
         run: |
-          for delay in 0 15 45; do
-            mvn -B -ntp -Dmaven.wagon.http.retryHandler.count=5 dependency:go-offline && break
-            sleep "$delay"
+          for attempt in 1 2 3 4; do
+            mvn -U -B -ntp -Dmaven.wagon.http.retryHandler.count=5 dependency:go-offline && exit 0
+            if [ "$attempt" -eq 4 ]; then exit 1; fi
+            sleep $((attempt * 20))
           done
       - run: mvn -B -ntp -Dmaven.wagon.http.retryHandler.count=5 verify
       - uses: dorny/test-reporter@v1
@@ -56,7 +57,14 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
-      - run: mvn -B -ntp -Dmaven.wagon.http.retryHandler.count=5 dependency:go-offline
+      - name: Resolve dependencies with retry
+        shell: bash
+        run: |
+          for attempt in 1 2 3 4; do
+            mvn -U -B -ntp -Dmaven.wagon.http.retryHandler.count=5 dependency:go-offline && exit 0
+            if [ "$attempt" -eq 4 ]; then exit 1; fi
+            sleep $((attempt * 20))
+          done
       - name: Scan third-party dependencies for known vulnerabilities
         uses: aquasecurity/trivy-action@master
         env:
@@ -68,5 +76,4 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           offline-scan: true
-          trivyignores: .trivyignore
           exit-code: '1'
