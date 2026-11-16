@@ -25,11 +25,16 @@ jobs:
           name: Maven tests
           path: target/surefire-reports/*.xml
           reporter: java-junit
-  dependency-review:
-    if: github.event_name == 'pull_request'
+  dependency-audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/dependency-review-action@v4
+      - name: Scan third-party dependencies for known vulnerabilities
+        uses: aquasecurity/trivy-action@0.33.1
         with:
-          fail-on-severity: high
+          scan-type: fs
+          scanners: vuln
+          vuln-type: library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
