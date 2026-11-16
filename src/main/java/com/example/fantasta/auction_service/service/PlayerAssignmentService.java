@@ -55,7 +55,10 @@ public class PlayerAssignmentService {
             throws TokenException, NotFoundException, ForbiddenException,
                    BudgetExceededException, LimitExceededException, DuplicateAssignmentException {
 
-        validateToken(authorizationHeader);
+        AuthUserResponse user = validateToken(authorizationHeader);
+        if (!auctionService.isOwner(auctionId, user.getId())) {
+            throw new ForbiddenException("Only the auction owner can assign players.");
+        }
 
         // 2. Verifica asta
         try {
@@ -174,24 +177,33 @@ public class PlayerAssignmentService {
     }
 
     // 2. Listare assegnazioni per asta
-    public List<PlayerAssignment> listAssignmentsByAuction(Integer auctionId) {
+    public List<PlayerAssignment> listAssignmentsByAuction(String authorizationHeader, Integer auctionId) throws TokenException {
+        validateToken(authorizationHeader);
         return playerAssignmentRepository.findByAuctionId(auctionId);
     }
 
     // 3. Listare assegnazioni per asta + team
-    public List<PlayerAssignment> listAssignmentsByAuctionAndTeam(Integer auctionId, Integer teamId) {
+    public List<PlayerAssignment> listAssignmentsByAuctionAndTeam(String authorizationHeader, Integer auctionId, Integer teamId)
+            throws TokenException {
+        validateToken(authorizationHeader);
         return playerAssignmentRepository.findByAuctionIdAndTeamId(auctionId, teamId);
     }
 
     // 4. Update ruolo/costo di un’assegnazione
     public PlayerAssignment updateAssignmentRoleCost(
+            String authorizationHeader,
             Integer assignmentId,
             String newRole,
             Integer newCost)
-            throws NotFoundException {
+            throws TokenException, NotFoundException, ForbiddenException {
 
+        AuthUserResponse user = validateToken(authorizationHeader);
         PlayerAssignment assignment = playerAssignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new NotFoundException("Assignment not found"));
+
+        if (!auctionService.isOwner(assignment.getAuctionId(), user.getId())) {
+            throw new ForbiddenException("Only the auction owner can update an assignment.");
+        }
 
         assignment.setRole(newRole);
         assignment.setCost(newCost);

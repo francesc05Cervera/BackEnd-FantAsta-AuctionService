@@ -14,6 +14,7 @@ import com.example.fantasta.auction_service.exception.DuplicateAssignmentExcepti
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -67,8 +68,12 @@ public class PlayerAssignmentController {
             @PathVariable Integer auctionId) {
 
         try {
-            List<PlayerAssignment> assignments = playerAssignmentService.listAssignmentsByAuction(auctionId);
+            List<PlayerAssignment> assignments = playerAssignmentService.listAssignmentsByAuction(authorizationHeader, auctionId);
             return ResponseEntity.ok(assignments);
+        } catch (TokenException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
@@ -82,8 +87,12 @@ public class PlayerAssignmentController {
             @PathVariable Integer teamId) {
 
         try {
-            List<PlayerAssignment> assignments = playerAssignmentService.listAssignmentsByAuctionAndTeam(auctionId, teamId);
+            List<PlayerAssignment> assignments = playerAssignmentService.listAssignmentsByAuctionAndTeam(authorizationHeader, auctionId, teamId);
             return ResponseEntity.ok(assignments);
+        } catch (TokenException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
@@ -98,13 +107,20 @@ public class PlayerAssignmentController {
 
         try {
             PlayerAssignment assignment = playerAssignmentService.updateAssignmentRoleCost(
+                    authorizationHeader,
                     assignmentId,
                     request.getRole(),
                     request.getCost()
             );
             return ResponseEntity.ok(assignment);
+        } catch (TokenException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        } catch (ForbiddenException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }

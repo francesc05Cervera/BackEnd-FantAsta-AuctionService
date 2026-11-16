@@ -186,7 +186,7 @@ public class AuctionService {
         return auction.getCreatorUserId().equals(uID);
     }
 
-    public AuctionResponse updateStatus(String authorizationHeader, int auctionId, AuctionStatus newStatus) throws NotFoundException, TokenException {
+    public AuctionResponse updateStatus(String authorizationHeader, int auctionId, AuctionStatus newStatus) throws NotFoundException, TokenException, ForbiddenException {
         AuthUserResponse res;
         try
         {
@@ -209,6 +209,9 @@ public class AuctionService {
         }
 
         Auction auction = auctionOptional.get();
+        if (!auction.getCreatorUserId().equals(res.getId())) {
+            throw new ForbiddenException("Only the auction owner can change its status.");
+        }
         auction.setStatus(newStatus);
         auctionRepository.save(auction);
 

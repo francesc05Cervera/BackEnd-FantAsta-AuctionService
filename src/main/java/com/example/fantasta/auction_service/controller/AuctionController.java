@@ -23,6 +23,7 @@ import com.example.fantasta.auction_service.dto.UpdateStatusRequest;
 import com.example.fantasta.auction_service.enumeration.AuctionStatus;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -63,16 +64,21 @@ public ResponseEntity<?> getAuctionByCode(
         @PathVariable String auctionCode) {
 
     try {
+        authServiceClient.getAuthenticatedUser(authorizationHeader);
         AuctionResponse response =
                 auctionService.getAuctionByCode(auctionCode);
 
         return ResponseEntity.ok(response);
 
+    } catch (TokenException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
     } catch (NotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(e.getMessage());
 
    
+    } catch (ResponseStatusException e) {
+        throw e;
     } catch (Exception e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(e.getMessage());
@@ -100,6 +106,8 @@ public ResponseEntity<?> getMyAuctions(
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(e.getMessage());
 
+    } catch (ResponseStatusException e) {
+        throw e;
     } catch (Exception e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(e.getMessage());
@@ -156,8 +164,11 @@ public ResponseEntity<String> pingAuctions() {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }
-        catch (Exception e)
+        } catch (ForbiddenException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (Exception e)
         {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
@@ -191,6 +202,8 @@ public ResponseEntity<String> pingAuctions() {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         } catch (InvalidStateException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
@@ -211,6 +224,8 @@ public ResponseEntity<String> pingAuctions() {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (ForbiddenException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
