@@ -34,7 +34,7 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
-      - run: mvn -B -ntp dependency:go-offline
+      - run: mvn -B -ntp -Dmaven.wagon.http.retryHandler.count=5 dependency:go-offline
       - name: Scan third-party dependencies for known vulnerabilities
         uses: aquasecurity/trivy-action@master
         with:
@@ -43,4 +43,5 @@ jobs:
           vuln-type: library
           severity: HIGH,CRITICAL
           ignore-unfixed: true
+          offline-scan: true
           exit-code: '1'
