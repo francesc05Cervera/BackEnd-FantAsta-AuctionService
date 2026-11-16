@@ -15,6 +15,7 @@ import com.example.fantasta.auction_service.exception.TokenException;
 import com.example.fantasta.auction_service.exception.NotFoundException;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.LinkedHashMap;
 import java.util.Optional;
@@ -156,14 +157,7 @@ public class AuctionService {
             throw new TokenException("Invalid or expired token");
         }
 
-        Optional<Auction> auctionOptional = auctionRepository.findById(auctionId);
-
-        if (!auctionOptional.isPresent()) {
-            throw new NotFoundException("Auction with ID " + auctionId + " not found");
-        }
-
-        Auction auction = auctionOptional.get();
-        return mapToResponse(auction);
+        return mapToResponse(findAuction(auctionId));
     }
 
     /*
@@ -175,18 +169,11 @@ public class AuctionService {
     */
     public boolean isOwner(int auctionId, Long uID) throws NotFoundException
     {
-        Optional<Auction> auctionOptional = auctionRepository.findById(auctionId);
-
-        if (!auctionOptional.isPresent()) {
-            throw new NotFoundException("Auction with ID " + auctionId + " not found");
-        }
-
-        Auction auction = auctionOptional.get();
-
-        return auction.getCreatorUserId().equals(uID);
+        return findAuction(auctionId).getCreatorUserId().equals(uID);
     }
 
-    public AuctionResponse updateStatus(String authorizationHeader, int auctionId, AuctionStatus newStatus) throws NotFoundException, TokenException, ForbiddenException {
+    @Transactional
+    public AuctionResponse updateStatus(String authorizationHeader, int auctionId, AuctionStatus newStatus) throws NotFoundException, TokenException, ForbiddenException, InvalidStateException {
         AuthUserResponse res;
         try
         {
@@ -202,15 +189,13 @@ public class AuctionService {
             throw new TokenException("Invalid or expired token");
         }
 
-        Optional<Auction> auctionOptional = auctionRepository.findById(auctionId);
-
-        if (!auctionOptional.isPresent()) {
-            throw new NotFoundException("Auction with ID " + auctionId + " not found");
-        }
-
-        Auction auction = auctionOptional.get();
+        Auction auction = auctionRepository.findWithLockById(auctionId)
+                .orElseThrow(() -> new NotFoundException("Auction with ID " + auctionId + " not found"));
         if (!auction.getCreatorUserId().equals(res.getId())) {
             throw new ForbiddenException("Only the auction owner can change its status.");
+        }
+        if (newStatus == null || !isAllowedTransition(auction.getStatus(), newStatus)) {
+            throw new InvalidStateException("Invalid auction status transition");
         }
         auction.setStatus(newStatus);
         auctionRepository.save(auction);
@@ -218,6 +203,7 @@ public class AuctionService {
         return mapToResponse(auction);
     }
 
+    @Transactional
     public AuctionResponse updateAuction(
         String authorizationHeader,
         int auctionId,
@@ -240,7 +226,7 @@ public class AuctionService {
             .orElseThrow(() -> new NotFoundException("Auction with ID " + auctionId + " not found"));
 
     // 3. verificare che l’utente sia creatore
-    if (auction.getCreatorUserId() != res.getId()) {
+    if (!auction.getCreatorUserId().equals(res.getId())) {
         throw new ForbiddenException("Only the creator can update this auction");
     }
 
@@ -251,7 +237,7 @@ public class AuctionService {
     }
 
     // 5. aggiornare campi (solo se non null)
-    if (name != null) {
+    if (name != null && !name.isBlank()) {
         auction.setName(name);
     }
     if (maxPlayersPerTeam != null) {
@@ -273,11 +259,13 @@ public class AuctionService {
         auction.setInitialCredits(initialCredits);
     }
 
+    validateLimits(auction);
     auctionRepository.save(auction);
 
     return mapToResponse(auction);
 }
 
+    @Transactional
     public void deleteAuction(
             String authorizationHeader,
             int auctionId
@@ -294,7 +282,7 @@ public class AuctionService {
                 .orElseThrow(() -> new NotFoundException("Auction with ID " + auctionId + " not found"));
 
         // 3. verificare che l’utente sia creatore
-        if (auction.getCreatorUserId() != res.getId()) {
+        if (!auction.getCreatorUserId().equals(res.getId())) {
             throw new ForbiddenException("Only the creator can delete this auction");
         }
 
@@ -353,4 +341,23 @@ private AuctionResponse toResponse(Auction auction) {
     response.setStatus(auction.getStatus());
     return response;
 }
+
+    public Auction findAuction(int auctionId) {
+        return auctionRepository.findById(auctionId)
+                .orElseThrow(() -> new NotFoundException("Auction with ID " + auctionId + " not found"));
+    }
+
+    private boolean isAllowedTransition(AuctionStatus current, AuctionStatus target) {
+        return current == target || (current == AuctionStatus.CREATED && target == AuctionStatus.OPEN)
+                || (current == AuctionStatus.OPEN && target == AuctionStatus.CLOSED);
+    }
+
+    private void validateLimits(Auction auction) throws InvalidStateException {
+        if (auction.getName() == null || auction.getName().isBlank() || auction.getInitialCredits() <= 0
+                || auction.getMaxPlayersPerTeam() <= 0 || auction.getMaxGoalkeepers() <= 0
+                || auction.getMaxDefenders() <= 0 || auction.getMaxMidfielders() <= 0 || auction.getMaxForwards() <= 0
+                || auction.getMaxGoalkeepers() + auction.getMaxDefenders() + auction.getMaxMidfielders() + auction.getMaxForwards() != auction.getMaxPlayersPerTeam()) {
+            throw new InvalidStateException("Auction limits are invalid");
+        }
+    }
 }

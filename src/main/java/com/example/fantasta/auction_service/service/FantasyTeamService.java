@@ -13,6 +13,7 @@ import com.example.fantasta.auction_service.exception.ForbiddenException;
 import com.example.fantasta.auction_service.client.AuthServiceClient;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -34,6 +35,7 @@ public class FantasyTeamService {
         this.authServiceClient = authServiceClient;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public FantasyTeam createTeam(String authorizationHeader, int auctionId, String teamName)
             throws TokenException, NotFoundException, ForbiddenException {
 
@@ -46,10 +48,6 @@ public class FantasyTeamService {
         Auction auction = auctionRepository.findById(auctionId)
                 .orElseThrow(() -> new NotFoundException("Auction with ID " + auctionId + " not found"));
 
-        if (!auction.getCreatorUserId().equals(user.getId())) {
-            throw new ForbiddenException("Only the auction owner can create teams.");
-        }
-
         AuctionParticipant participant = auctionParticipantRepository
                 .findByAuctionIdAndUserId(auctionId, user.getId())
                 .orElseThrow(() -> new NotFoundException("You are not an approved participant of this auction."));
@@ -58,6 +56,9 @@ public class FantasyTeamService {
             throw new ForbiddenException("You must be approved to create a team.");
         }
 
+        if (teamName == null || teamName.isBlank()) {
+            throw new ForbiddenException("Team name is required.");
+        }
         if (fantasyTeamRepository.findByAuctionId(auctionId)
                 .stream()
                 .anyMatch(team -> team.getOwnerUserId().equals(user.getId()))) {
@@ -89,9 +90,9 @@ public class FantasyTeamService {
         Auction auction = auctionRepository.findById(auctionId)
                 .orElseThrow(() -> new NotFoundException("Auction with ID " + auctionId + " not found"));
 
-        if (!auction.getCreatorUserId().equals(user.getId())) {
-            throw new ForbiddenException("Only the auction owner can list teams.");
-        }
+        boolean allowed = auction.getCreatorUserId().equals(user.getId()) || auctionParticipantRepository
+                .findByAuctionIdAndUserId(auctionId, user.getId()).map(AuctionParticipant::isApproved).orElse(false);
+        if (!allowed) throw new ForbiddenException("You are not an approved participant of this auction.");
 
         return fantasyTeamRepository.findByAuctionId(auctionId);
     }

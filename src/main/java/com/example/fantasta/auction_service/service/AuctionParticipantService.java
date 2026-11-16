@@ -53,6 +53,7 @@ public class AuctionParticipantService
         @return true se l'utente è stato aggiunto con successo all'asta, false se l'utente ha già partecipato all'asta.
         
     */
+    @Transactional
     public boolean join(int auctionId, Long userId) 
     {
         if (isUserAlreadyJoined(auctionId, userId)) 
@@ -60,6 +61,12 @@ public class AuctionParticipantService
             return false; 
         }
 
+        Auction auction = auctionRepository.findWithLockById(auctionId)
+                .orElseThrow(() -> new NotFoundException("Auction not found"));
+        if (auction.getStatus() != com.example.fantasta.auction_service.enumeration.AuctionStatus.OPEN) {
+            throw new IllegalStateException("Auction is not open for joining");
+        }
+        if (isUserAlreadyJoined(auctionId, userId)) return false;
         AuctionParticipant participant = new AuctionParticipant();
         participant.setAuctionId(auctionId);   
         participant.setUserId(userId);
@@ -76,7 +83,7 @@ public class AuctionParticipantService
     public void cleanupOldParticipants() 
     {
         LocalDateTime cutoff = LocalDateTime.now().minusDays(5);
-        auctionParticipantRepository.deleteByJoinedAtBefore(cutoff);
+        auctionParticipantRepository.deleteByJoinedAtBeforeAndApprovedFalse(cutoff);
     }
 
     /*
