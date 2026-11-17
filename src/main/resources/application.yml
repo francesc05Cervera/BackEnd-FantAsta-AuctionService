@@ -1,0 +1,8 @@
+spring:
+  datasource:
+    hikari:
+      # Render's shared PostgreSQL/PgBouncer session pool is small. Keep this
+      # service below its connection cap alongside AuthService and PlayerService.
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:3}
+      minimum-idle: ${DB_POOL_MIN_IDLE:0}
+      connection-timeout: ${DB_CONNECTION_TIMEOUT_MS:10000}
