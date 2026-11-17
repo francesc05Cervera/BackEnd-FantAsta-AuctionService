@@ -14,7 +14,7 @@ public interface AuctionParticipantRepository extends JpaRepository<AuctionParti
 
     boolean existsByAuctionIdAndUserId(int auctionId, Long userId);
 
-    void deleteByJoinedAtBefore(LocalDateTime cutoff);
+    void deleteByJoinedAtBeforeAndApprovedFalse(LocalDateTime cutoff);
 
     List<AuctionParticipant> findByAuctionId(int auctionId);
 

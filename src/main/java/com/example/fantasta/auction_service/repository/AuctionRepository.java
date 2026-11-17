@@ -5,6 +5,8 @@ import java.util.List;
 
 import com.example.fantasta.auction_service.entity.Auction;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 
 public interface AuctionRepository extends JpaRepository<Auction, Integer> {
 
@@ -13,6 +15,9 @@ public interface AuctionRepository extends JpaRepository<Auction, Integer> {
     Auction findByAuctionCode(String auctionCode);
 
     Optional<Auction> findById(int id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<Auction> findWithLockById(int id);
 
     List<Auction> findByCreatorUserId(Long creatorUserId);
 

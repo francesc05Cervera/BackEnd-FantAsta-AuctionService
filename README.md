@@ -128,7 +128,13 @@ spring.jpa.hibernate.ddl-auto=update
 
 # Auth Service
 auth.service.url=<url-auth-service>
+
+# Player Service e CORS Angular
+player.service.url=<url-player-service>
+app.cors.allowed-origins=http://localhost:4200,https://<frontend-domain>
 ```
+
+Su Render usa `AUTH_SERVICE_URL`, `PLAYER_SERVICE_URL` e `APP_CORS_ALLOWEDORIGINS`. Il servizio non contiene né richiede il segreto JWT, perché verifica l'identità chiamando `GET /api/user/me` di AuthService con lo stesso header Bearer ricevuto dal client.
 
 > ⚠️ Non committare mai credenziali reali nel repository. Usa variabili d'ambiente in produzione.
 

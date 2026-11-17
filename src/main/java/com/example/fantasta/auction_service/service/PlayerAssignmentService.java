@@ -1,228 +1,124 @@
 package com.example.fantasta.auction_service.service;
 
-
-import com.example.fantasta.auction_service.entity.PlayerAssignment;
-import com.example.fantasta.auction_service.repository.PlayerAssignmentRepository;
-import com.example.fantasta.auction_service.exception.TokenException;
-import com.example.fantasta.auction_service.exception.NotFoundException;
-import com.example.fantasta.auction_service.exception.ForbiddenException;
-import com.example.fantasta.auction_service.exception.BudgetExceededException;
-import com.example.fantasta.auction_service.exception.LimitExceededException;
-import com.example.fantasta.auction_service.exception.DuplicateAssignmentException;
-import com.example.fantasta.auction_service.client.PlayerServiceClient;
-import com.example.fantasta.auction_service.dto.PlayerDTO;
-
-import com.example.fantasta.auction_service.client.AuthServiceClient;
-import com.example.fantasta.auction_service.dto.AuthUserResponse;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import com.example.fantasta.auction_service.client.AuthServiceClient;
+import com.example.fantasta.auction_service.client.PlayerServiceClient;
+import com.example.fantasta.auction_service.dto.AuthUserResponse;
+import com.example.fantasta.auction_service.dto.PlayerDTO;
+import com.example.fantasta.auction_service.entity.Auction;
+import com.example.fantasta.auction_service.entity.FantasyTeam;
+import com.example.fantasta.auction_service.entity.PlayerAssignment;
+import com.example.fantasta.auction_service.enumeration.AuctionStatus;
+import com.example.fantasta.auction_service.exception.BudgetExceededException;
+import com.example.fantasta.auction_service.exception.DuplicateAssignmentException;
+import com.example.fantasta.auction_service.exception.ForbiddenException;
+import com.example.fantasta.auction_service.exception.LimitExceededException;
+import com.example.fantasta.auction_service.exception.NotFoundException;
+import com.example.fantasta.auction_service.exception.TokenException;
+import com.example.fantasta.auction_service.repository.AuctionParticipantRepository;
+import com.example.fantasta.auction_service.repository.AuctionRepository;
+import com.example.fantasta.auction_service.repository.FantasyTeamRepository;
+import com.example.fantasta.auction_service.repository.PlayerAssignmentRepository;
 
 @Service
 public class PlayerAssignmentService {
+    private final PlayerAssignmentRepository assignments;
+    private final AuctionRepository auctions;
+    private final FantasyTeamRepository teams;
+    private final AuctionParticipantRepository participants;
+    private final AuthServiceClient auth;
+    private final PlayerServiceClient players;
 
-    private final PlayerAssignmentRepository playerAssignmentRepository;
-    private final AuthServiceClient authServiceClient;
-    private final AuctionService auctionService;
-    private final FantasyTeamService fantasyTeamService;
-    private final PlayerServiceClient playerClient;
-
-    public PlayerAssignmentService(PlayerAssignmentRepository playerAssignmentRepository,
-                                   AuthServiceClient authServiceClient,
-                                   AuctionService auctionService,
-                                   FantasyTeamService fantasyTeamService,
-                                   PlayerServiceClient playerClient) {
-        this.playerAssignmentRepository = playerAssignmentRepository;
-        this.authServiceClient = authServiceClient;
-        this.auctionService = auctionService;
-        this.fantasyTeamService = fantasyTeamService;
-        this.playerClient = playerClient;
+    public PlayerAssignmentService(PlayerAssignmentRepository assignments, AuctionRepository auctions,
+            FantasyTeamRepository teams, AuctionParticipantRepository participants, AuthServiceClient auth,
+            PlayerServiceClient players) {
+        this.assignments = assignments; this.auctions = auctions; this.teams = teams;
+        this.participants = participants; this.auth = auth; this.players = players;
     }
 
-    private AuthUserResponse validateToken(String authorizationHeader) throws TokenException {
-        return authServiceClient.getAuthenticatedUser(authorizationHeader);
+    @Transactional(rollbackFor = Exception.class)
+    public PlayerAssignment assignPlayer(String header, Integer auctionId, Integer teamId, Integer playerId, String role, Integer cost)
+            throws TokenException, NotFoundException, ForbiddenException, BudgetExceededException, LimitExceededException, DuplicateAssignmentException {
+        AuthUserResponse user = auth.getAuthenticatedUser(header);
+        Auction auction = lockAuction(auctionId);
+        requireOwner(auction, user);
+        requireOpen(auction);
+        if (teamId == null || playerId == null || cost == null || cost < 0) throw new LimitExceededException("Assignment data is invalid");
+        FantasyTeam team = teams.findWithLockByAuctionIdAndId(auctionId, teamId)
+                .orElseThrow(() -> new NotFoundException("Team not found for this auction"));
+        PlayerDTO player = players.getPlayer(header, playerId);
+        if (role == null || !role.equalsIgnoreCase(player.getRole())) throw new LimitExceededException("Assignment role must match the player role");
+        List<PlayerAssignment> current = assignments.findByAuctionIdAndTeamId(auctionId, teamId);
+        if (assignments.existsByAuctionIdAndPlayerId(auctionId, playerId)) throw new DuplicateAssignmentException("Player already assigned in this auction");
+        enforceRoster(auction, team, current, player.getRole(), cost, null);
+        return assignments.save(new PlayerAssignment(auctionId, teamId, playerId, player.getRole().toUpperCase(), cost));
     }
 
-    // 1. Assegnare giocatore
-    public PlayerAssignment assignPlayer(
-            String authorizationHeader,
-            Integer auctionId,
-            Integer teamId,
-            Integer playerId,
-            String role,
-            Integer cost)
-            throws TokenException, NotFoundException, ForbiddenException,
-                   BudgetExceededException, LimitExceededException, DuplicateAssignmentException {
-
-        AuthUserResponse user = validateToken(authorizationHeader);
-        if (!auctionService.isOwner(auctionId, user.getId())) {
-            throw new ForbiddenException("Only the auction owner can assign players.");
-        }
-
-        // 2. Verifica asta
-        try {
-            auctionService.getAuctionById(authorizationHeader, auctionId);
-        } catch (NotFoundException e) {
-            throw new NotFoundException("Auction with ID " + auctionId + " not found");
-        } catch (TokenException e) {
-            throw e;
-        }
-
-        // 3. Verifica team (esiste per questa asta e appartiene all’asta)
-        // Nota: non esiste ancora un metodo diretto, ma puoi usare listTeams o aggiungere existsByAuctionIdAndTeamId
-        // Per ora usiamo una logica semplice:
-        List<com.example.fantasta.auction_service.entity.FantasyTeam> teams =
-                fantasyTeamService.listTeams(authorizationHeader, auctionId);
-        boolean teamExists = false;
-        for (com.example.fantasta.auction_service.entity.FantasyTeam t : teams) {
-            if (t.getId() == teamId) {
-                teamExists = true;
-                break;
-            }
-        }
-        if (!teamExists) {
-            throw new NotFoundException("Team with ID " + teamId + " not found for this auction");
-        }
-
-        // 4. Verifica duplicato: giocatore già assegnato in questa asta
-        List<PlayerAssignment> existing = playerAssignmentRepository.findByAuctionId(auctionId);
-        for (PlayerAssignment pa : existing) {
-            if (pa.getPlayerId() == playerId) {
-                throw new DuplicateAssignmentException("Player already assigned in this auction");
-            }
-        }
-
-        // 5. Verifica limiti per ruolo nell’asta
-        int maxForRole = getMaxPlayersByRole(auctionId, role);
-        int currentForRole = 0;
-        for (PlayerAssignment pa : existing) {
-            if (pa.getRole() != null && pa.getRole().equalsIgnoreCase(role)) {
-                currentForRole++;
-            }
-        }
-        if (currentForRole >= maxForRole) {
-            throw new LimitExceededException("Limit exceeded for role: " + role);
-        }
-
-        // 6. Verifica budget del team
-        int currentCost = getCurrentCostForTeam(auctionId, teamId);
-        int newTotal = currentCost + cost;
-        int budget = getBudgetForTeam(auctionId, teamId);
-        if (newTotal > budget) {
-            throw new BudgetExceededException("Budget exceeded for this team");
-        }
-
-        PlayerAssignment assignment = new PlayerAssignment();
-        assignment.setAuctionId(auctionId);
-        assignment.setTeamId(teamId);
-        assignment.setPlayerId(playerId);
-        assignment.setRole(role);
-        assignment.setCost(cost);
-
-        return playerAssignmentRepository.save(assignment);
+    @Transactional(rollbackFor = Exception.class)
+    public PlayerAssignment updateAssignmentRoleCost(String header, Integer assignmentId, String role, Integer cost)
+            throws TokenException, NotFoundException, ForbiddenException, BudgetExceededException, LimitExceededException {
+        AuthUserResponse user = auth.getAuthenticatedUser(header);
+        PlayerAssignment assignment = assignments.findById(assignmentId).orElseThrow(() -> new NotFoundException("Assignment not found"));
+        Auction auction = lockAuction(assignment.getAuctionId());
+        requireOwner(auction, user); requireOpen(auction);
+        if (cost == null || cost < 0) throw new LimitExceededException("Cost must be non-negative");
+        FantasyTeam team = teams.findWithLockByAuctionIdAndId(auction.getId(), assignment.getTeamId())
+                .orElseThrow(() -> new NotFoundException("Team not found for this auction"));
+        PlayerDTO player = players.getPlayer(header, assignment.getPlayerId());
+        if (role == null || !role.equalsIgnoreCase(player.getRole())) throw new LimitExceededException("Assignment role must match the player role");
+        enforceRoster(auction, team, assignments.findByAuctionIdAndTeamId(auction.getId(), team.getId()), player.getRole(), cost, assignment.getId());
+        assignment.setRole(player.getRole().toUpperCase()); assignment.setCost(cost);
+        return assignments.save(assignment);
     }
 
-    // Helper: maxPlayers per ruolo nell’asta
-    private int getMaxPlayersByRole(Integer auctionId, String role) {
-        // Usa AuctionStatus per decidere quale campo usare
-        // Per semplicità, assumiamo che i limiti siano fissi in Auction
-        try {
-            com.example.fantasta.auction_service.dto.AuctionResponse auction =
-                    auctionService.getAuctionById(null, auctionId); // senza auth se vuoi, oppure passa header
-            if (role == null) {
-                return 0;
-            }
-            switch (role.toUpperCase()) {
-                case "PORTIERE":
-                    return auction.getMaxGoalkeepers();
-                case "DIFENSORE":
-                    return auction.getMaxDefenders();
-                case "CENTROCAMPISTA":
-                    return auction.getMaxMidfielders();
-                case "ATTACCANTE":
-                    return auction.getMaxForwards();
-                default:
-                    return 0;
-            }
-        } catch (Exception e) {
-            return 0;
-        }
+    public List<PlayerAssignment> listAssignmentsByAuction(String header, Integer auctionId) throws TokenException, ForbiddenException {
+        requireParticipantOrOwner(auctionId, auth.getAuthenticatedUser(header)); return assignments.findByAuctionId(auctionId);
     }
 
-    // Helper: budget del team
-    private int getBudgetForTeam(Integer auctionId, Integer teamId) {
-        try {
-            List<com.example.fantasta.auction_service.entity.FantasyTeam> teams =
-                    fantasyTeamService.listTeams(null, auctionId);
-            for (com.example.fantasta.auction_service.entity.FantasyTeam t : teams) {
-                if (t.getId() == teamId) {
-                    return t.getBudget();
-                }
-            }
-            return 0;
-        } catch (Exception e) {
-            return 0;
-        }
+    public List<PlayerAssignment> listAssignmentsByAuctionAndTeam(String header, Integer auctionId, Integer teamId) throws TokenException, ForbiddenException {
+        requireParticipantOrOwner(auctionId, auth.getAuthenticatedUser(header)); return assignments.findByAuctionIdAndTeamId(auctionId, teamId);
     }
 
-    // Helper: costo attuale del team
-    private int getCurrentCostForTeam(Integer auctionId, Integer teamId) {
-        List<PlayerAssignment> assignments = playerAssignmentRepository.findByAuctionIdAndTeamId(auctionId, teamId);
-        int total = 0;
-        for (PlayerAssignment pa : assignments) {
-            total += pa.getCost();
-        }
-        return total;
+    public List<PlayerDTO> getAvailablePlayers(String header, Integer auctionId) throws TokenException, ForbiddenException {
+        requireParticipantOrOwner(auctionId, auth.getAuthenticatedUser(header));
+        List<Integer> assigned = assignments.findPlayerIdsByAuctionId(auctionId);
+        return players.getPlayers(header).stream().filter(player -> !assigned.contains(player.getId())).toList();
     }
 
-    // 2. Listare assegnazioni per asta
-    public List<PlayerAssignment> listAssignmentsByAuction(String authorizationHeader, Integer auctionId) throws TokenException {
-        validateToken(authorizationHeader);
-        return playerAssignmentRepository.findByAuctionId(auctionId);
+    private Auction lockAuction(Integer auctionId) {
+        return auctions.findWithLockById(auctionId).orElseThrow(() -> new NotFoundException("Auction not found"));
     }
 
-    // 3. Listare assegnazioni per asta + team
-    public List<PlayerAssignment> listAssignmentsByAuctionAndTeam(String authorizationHeader, Integer auctionId, Integer teamId)
-            throws TokenException {
-        validateToken(authorizationHeader);
-        return playerAssignmentRepository.findByAuctionIdAndTeamId(auctionId, teamId);
+    private void requireOwner(Auction auction, AuthUserResponse user) throws ForbiddenException {
+        if (!auction.getCreatorUserId().equals(user.getId())) throw new ForbiddenException("Only the auction owner can manage assignments");
     }
 
-    // 4. Update ruolo/costo di un’assegnazione
-    public PlayerAssignment updateAssignmentRoleCost(
-            String authorizationHeader,
-            Integer assignmentId,
-            String newRole,
-            Integer newCost)
-            throws TokenException, NotFoundException, ForbiddenException {
-
-        AuthUserResponse user = validateToken(authorizationHeader);
-        PlayerAssignment assignment = playerAssignmentRepository.findById(assignmentId)
-                .orElseThrow(() -> new NotFoundException("Assignment not found"));
-
-        if (!auctionService.isOwner(assignment.getAuctionId(), user.getId())) {
-            throw new ForbiddenException("Only the auction owner can update an assignment.");
-        }
-
-        assignment.setRole(newRole);
-        assignment.setCost(newCost);
-
-        return playerAssignmentRepository.save(assignment);
+    private void requireOpen(Auction auction) throws LimitExceededException {
+        if (auction.getStatus() != AuctionStatus.OPEN) throw new LimitExceededException("Assignments are allowed only when the auction is open");
     }
 
-    // PlayerAssignmentService.java
-public List<PlayerDTO> getAvailablePlayers(String authorizationHeader, Integer auctionId) {
-    // 1. Chiami PlayerService per tutti i giocatori
-    List<PlayerDTO> allPlayers = playerClient.getPlayers(authorizationHeader);
-    
-    // 2. Recupera i giocatori già assegnati in questa asta
-    List<Integer> assignedIds = playerAssignmentRepository
-        .findPlayerIdsByAuctionId(auctionId);
-    
-    // 3. Differenza
-    return allPlayers.stream()
-        .filter(p -> !assignedIds.contains(p.getId()))
-        .toList();
-}
+    private void requireParticipantOrOwner(Integer auctionId, AuthUserResponse user) throws ForbiddenException {
+        Auction auction = auctions.findById(auctionId).orElseThrow(() -> new NotFoundException("Auction not found"));
+        boolean permitted = auction.getCreatorUserId().equals(user.getId()) || participants.findByAuctionIdAndUserId(auctionId, user.getId()).map(p -> p.isApproved()).orElse(false);
+        if (!permitted) throw new ForbiddenException("You are not an approved participant of this auction");
+    }
+
+    private void enforceRoster(Auction auction, FantasyTeam team, List<PlayerAssignment> current, String role, int proposedCost, Integer ignoredAssignment)
+            throws BudgetExceededException, LimitExceededException {
+        List<PlayerAssignment> effective = current.stream().filter(item -> !item.getId().equals(ignoredAssignment)).toList();
+        if (effective.size() >= auction.getMaxPlayersPerTeam()) throw new LimitExceededException("Team roster limit exceeded");
+        long roleCount = effective.stream().filter(item -> item.getRole().equalsIgnoreCase(role)).count();
+        int roleLimit = switch (role.toUpperCase()) {
+            case "PORTIERE" -> auction.getMaxGoalkeepers(); case "DIFENSORE" -> auction.getMaxDefenders();
+            case "CENTROCAMPISTA" -> auction.getMaxMidfielders(); case "ATTACCANTE" -> auction.getMaxForwards();
+            default -> throw new LimitExceededException("Unknown player role");
+        };
+        if (roleCount >= roleLimit) throw new LimitExceededException("Role limit exceeded");
+        int spent = effective.stream().mapToInt(PlayerAssignment::getCost).sum();
+        if (spent + proposedCost > team.getBudget()) throw new BudgetExceededException("Team budget exceeded");
+    }
 }

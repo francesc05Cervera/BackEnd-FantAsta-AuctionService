@@ -131,11 +131,12 @@ public ResponseEntity<List<PlayerDTO>> getAvailablePlayers(
         @RequestHeader("Authorization") String authorizationHeader,
         @PathVariable Integer auctionId
 ) {
-    return ResponseEntity.ok(
-            playerAssignmentService.getAvailablePlayers(
-                    authorizationHeader,
-                    auctionId
-            )
-    );
+    try {
+        return ResponseEntity.ok(playerAssignmentService.getAvailablePlayers(authorizationHeader, auctionId));
+    } catch (TokenException exception) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    } catch (ForbiddenException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    }
 }
 }
